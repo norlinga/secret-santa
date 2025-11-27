@@ -44,7 +44,9 @@ def save_pairings(pairings, year)
   require 'fileutils'
   require 'time'
 
-  dir_path = File.expand_path("../pairings/#{year}", __dir__)
+  # Use environment variable for pairings directory, with fallback
+  base_dir = ENV['PAIRINGS_DIR'] || File.expand_path('../pairings', __dir__)
+  dir_path = File.join(base_dir, year.to_s)
   FileUtils.mkdir_p(dir_path)
 
   timestamp = Time.now.strftime('%Y%m%d_%H%M%S')

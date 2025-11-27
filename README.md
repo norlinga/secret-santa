@@ -19,7 +19,13 @@ A Ruby application that automatically generates Secret Santa gift pairings and s
 - Ruby 3.0 or higher
 - Bundler gem installed
 
+**OR**
+
+- Docker and Make (for containerized deployment)
+
 ### Installation
+
+#### Option 1: Native Ruby
 
 1. Clone the repository:
 ```bash
@@ -43,6 +49,28 @@ cp config/event.example.yml config/event.yml
 cp .env.example .env
 # Edit .env with your SMTP settings
 ```
+
+#### Option 2: Docker (Recommended)
+
+1. Clone the repository:
+```bash
+git clone https://github.com/norlinga/secret-santa.git
+cd secret-santa
+```
+
+2. Set up configuration files:
+```bash
+cp config/event.example.yml config/event.yml
+cp .env.example .env
+# Edit both files with your details
+```
+
+3. Build the Docker image:
+```bash
+make build
+```
+
+That's it! The Docker setup handles all dependencies automatically.
 
 ## Configuration
 
@@ -94,7 +122,43 @@ DOITLIVE=false
 
 ## Usage
 
-### Dry Run (Preview Pairings)
+### Docker Usage (Recommended)
+
+The easiest way to use Secret Santa is with the included Makefile:
+
+#### Preview Pairings (Dry Run)
+```bash
+make run
+```
+
+#### Send Emails (Live Mode)
+```bash
+make send
+# You'll be prompted to confirm before emails are sent
+```
+
+#### Run Tests
+```bash
+make test
+```
+
+#### Other Commands
+```bash
+make help    # Show all available commands
+make check   # Verify config files exist
+make clean   # Remove Docker image
+```
+
+**Notes:**
+- Configuration files (`.env` and `config/event.yml`) are mounted as read-only
+- Pairing history is saved to `~/.secret_santa_pairings/YYYY/`
+- Runs as your user (not root) to avoid permission issues
+
+### Native Ruby Usage
+
+If you prefer running without Docker:
+
+#### Dry Run (Preview Pairings)
 
 See the pairings without sending emails:
 
@@ -174,6 +238,37 @@ ruby test/performance_test.rb
 ```
 
 This generates statistics on how many attempts the algorithm needs to find valid pairings.
+
+## Docker Details
+
+### How It Works
+
+The Docker setup provides several advantages:
+
+1. **No Ruby Installation Needed** - Everything runs in a container
+2. **Consistent Environment** - Same Ruby version and dependencies every time
+3. **Security** - Runs as non-root user (your UID/GID)
+4. **Portability** - Run from any directory with make commands
+5. **Isolation** - Keeps pairings in `~/.secret_santa_pairings/` outside the project
+
+### Volume Mounts
+
+The Docker container mounts:
+- `.env` → Read-only SMTP credentials
+- `config/event.yml` → Read-only event configuration
+- `~/.secret_santa_pairings/` → Writable pairing history
+
+### Customizing Docker
+
+To use a different Ruby version, edit the `Dockerfile`:
+```dockerfile
+FROM ruby:3.3-slim  # Change to ruby:3.2-slim, etc.
+```
+
+Then rebuild:
+```bash
+make build
+```
 
 ## Project Structure
 
