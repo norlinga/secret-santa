@@ -1,0 +1,22 @@
+# Environment variables (contains sensitive credentials)
+.env
+
+# Ruby/Bundler
+/.bundle/
+/vendor/bundle
+.ruby-version
+.ruby-gemset
+
+# Testing
+/coverage/
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
