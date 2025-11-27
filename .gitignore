@@ -1,6 +1,12 @@
 # Environment variables (contains sensitive credentials)
 .env
 
+# Event configuration (contains real names and emails)
+config/event.yml
+
+# Pairings history (contains real names and emails)
+pairings/
+
 # Ruby/Bundler
 /.bundle/
 /vendor/bundle

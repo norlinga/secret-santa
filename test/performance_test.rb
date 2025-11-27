@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
 require 'faker'
-
-require_relative 'app'
+require_relative '../lib/secret_santa'
 
 # Let's test the performance of the secret santa pairing algorithm
 # by creating a large number of gifters and running the algorithm
@@ -20,7 +19,7 @@ i.times do
   gifters << { name: name2, email: Faker::Internet.email, exclude: [name1] }
 end
 
-secret_santa = SecretSanta.new(gifters: gifters)
+secret_santa = SecretSanta.new(gifters:)
 
 j = 10_000
 

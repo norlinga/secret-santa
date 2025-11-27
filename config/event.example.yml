@@ -1,0 +1,46 @@
+# Secret Santa Event Configuration
+# Copy this file to config/event.yml and customize for your event
+
+year: 2025
+gift_amount: 75
+
+# The organizer who will answer questions about the event
+organizer:
+  name: Alice
+  email: alice@example.com
+
+# List of participants
+# Each participant can have an 'exclude' list of people they should not be paired with
+participants:
+  - name: Alice
+    email: alice@example.com
+    exclude:
+      - Bob
+  
+  - name: Bob
+    email: bob@example.com
+    exclude:
+      - Alice
+      - Charlie
+  
+  - name: Charlie
+    email: charlie@example.com
+    exclude:
+      - Diana
+  
+  - name: Diana
+    email: diana@example.com
+    exclude:
+      - Charlie
+      - Alice
+  
+  - name: Eve
+    email: eve@example.com
+    exclude:
+      - Frank
+      - Bob
+  
+  - name: Frank
+    email: frank@example.com
+    exclude:
+      - Eve

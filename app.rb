@@ -1,171 +1,94 @@
 # frozen_string_literal: true
 
 require 'dotenv/load'
-require 'minitest'
-require 'minitest/autorun'
-require 'minitest/reporters'
+require_relative 'lib/config'
+require_relative 'lib/secret_santa'
+require_relative 'lib/santa_mailer'
 
-Minitest::Reporters.use! if ENV['DOITLIVE'] == 'false'
+# ANSI color codes for festive output
+module Colors
+  RED = "\e[31m"
+  GREEN = "\e[32m"
+  YELLOW = "\e[33m"
+  BOLD = "\e[1m"
+  RESET = "\e[0m"
+end
 
-require 'mail'
+def print_header
+  puts "\n#{Colors::GREEN}#{Colors::BOLD}🎄 ═══════════════════════════════════════════ 🎄#{Colors::RESET}"
+  puts "#{Colors::RED}#{Colors::BOLD}        Secret Santa Pairing Results!        #{Colors::RESET}"
+  puts "#{Colors::GREEN}#{Colors::BOLD}🎄 ═══════════════════════════════════════════ 🎄#{Colors::RESET}\n\n"
+end
 
-# tests to validate SecretSanta class
-class SecretSantaTest < Minitest::Test
-  def setup
-    @gifters = [
-      { name: 'Alice', email: 'alice@example.com', exclude: ['Bob'] },
-      { name: 'Bob', email: 'bob@example.com', exclude: ['Alice'] },
-      { name: 'Charlie', email: 'charlie@example.com', exclude: ['Diana'] },
-      { name: 'Diana', email: 'diana@example.com', exclude: ['Charlie'] },
-      { name: 'Eve', email: 'eve@example.com', exclude: ['Frank'] },
-      { name: 'Frank', email: 'frank@example.com', exclude: ['Eve'] }
-    ]
+def print_pairing(giver, receiver, index)
+  puts "#{Colors::YELLOW}#{Colors::BOLD}Gift ##{index}:#{Colors::RESET}"
+  puts "  #{Colors::GREEN}🎁 #{giver[:name]}#{Colors::RESET} → #{Colors::RED}#{receiver[:name]}#{Colors::RESET}"
+  puts ''
+end
 
-    @valid_pairings = [
-      [{ name: 'Alice', email: '', exclude: ['Bob'] },
-       { name: 'Charlie', email: '', exclude: ['Diana'] }],
-      [{ name: 'Bob', email: '', exclude: ['Alice'] },
-       { name: 'Diana', email: '', exclude: ['Charlie'] }]
-    ]
+def print_footer(attempts)
+  puts "#{Colors::GREEN}#{Colors::BOLD}🎄 ═══════════════════════════════════════════ 🎄#{Colors::RESET}"
+  puts "#{Colors::YELLOW}✨ Pairings generated in #{attempts} attempt(s)! ✨#{Colors::RESET}"
+  puts "#{Colors::GREEN}#{Colors::BOLD}🎄 ═══════════════════════════════════════════ 🎄#{Colors::RESET}\n\n"
+end
 
-    @invalid_pairing_1 = [
-      [{ name: 'Alice', email: '', exclude: ['Bob'] },
-       { name: 'Alice', email: '', exclude: ['Bob'] }],
-      [{ name: 'Bob', email: '', exclude: ['Alice'] },
-       { name: 'Charlie', email: '', exclude: ['Diana'] }]
-    ]
-
-    @invalid_pairing_2 = [
-      [{ name: 'Alice', email: '', exclude: ['Bob'] },
-       { name: 'Bob', email: '', exclude: ['Alice'] }],
-      [{ name: 'Bob', email: '', exclude: ['Alice'] },
-       { name: 'Charlie', email: '', exclude: ['Diana'] }]
-    ]
+def display_pairings(pairings, attempts)
+  print_header
+  pairings.each_with_index do |(giver, receiver), index|
+    print_pairing(giver, receiver, index + 1)
   end
+  print_footer(attempts)
+end
 
-  def test_default_env_value
-    assert_equal 'test', ENV['TEST_VALUE']
-  end
+def save_pairings(pairings, year)
+  require 'fileutils'
+  require 'time'
 
-  def test_new_requires_gifter_array
-    assert_raises ArgumentError do
-      SecretSanta.new
+  dir_path = File.expand_path("../pairings/#{year}", __dir__)
+  FileUtils.mkdir_p(dir_path)
+
+  timestamp = Time.now.strftime('%Y%m%d_%H%M%S')
+  file_path = File.join(dir_path, "pairings_#{timestamp}.txt")
+
+  File.open(file_path, 'w') do |f|
+    f.puts "Secret Santa Pairings - #{year}"
+    f.puts "Generated: #{Time.now}"
+    f.puts '=' * 50
+    f.puts ''
+
+    pairings.each_with_index do |(giver, receiver), index|
+      f.puts "Gift ##{index + 1}:"
+      f.puts "  #{giver[:name]} (#{giver[:email]}) → #{receiver[:name]} (#{receiver[:email]})"
+      f.puts ''
     end
   end
 
-  def test_suffle_gifters_returns_array_of_arrays
-    secret_santa = SecretSanta.new(gifters: @gifters)
-    assert_equal Array, secret_santa.send(:shuffle_gifters).class
-    assert !secret_santa.instance_variable_get(:@pairings).nil?
-  end
-
-  def test_pairings_valid_returns_true_for_valid_pairings
-    secret_santa = SecretSanta.new(gifters: @gifters)
-    secret_santa.instance_variable_set(:@pairings, @valid_pairings)
-    assert secret_santa.send(:pairings_valid?)
-  end
-
-  def test_pairings_valid_returns_false_for_invalid_pairings
-    secret_santa = SecretSanta.new(gifters: @gifters)
-    secret_santa.instance_variable_set(:@pairings, @invalid_pairing_1)
-    assert !secret_santa.send(:pairings_valid?)
-    secret_santa.instance_variable_set(:@pairings, @invalid_pairing_2)
-    assert !secret_santa.send(:pairings_valid?)
-  end
+  file_path
 end
 
-# Provide an array of gifters as {name:, email:, exclude: []}
-# to SecretSanta.new(gifters:)
-# Then #pair_gifters will return an array of arrays of paired gifters
-# as [[giver, receiver], [giver, receiver], ...]
-class SecretSanta
-  attr_reader :attempts
-
-  def initialize(gifters:)
-    @gifters = gifters
-    @pairings = []
-    @attempts = 0
-  end
-
-  def pair_gifters
-    shuffle_gifters
-    pairings_valid? ? @pairings : pair_gifters
-  end
-
-  private
-
-  def shuffle_gifters
-    @pairings = @gifters.zip(@gifters.shuffle)
-  end
-
-  def pairings_valid?
-    @attempts += 1
-    @pairings.all? do |giver, receiver|
-      giver_name = giver[:name]
-      receiver_name = receiver[:name]
-      exclude_list = giver[:exclude]
-
-      giver_name != receiver_name && !exclude_list.include?(receiver_name)
-    end
-  end
-end
-
-class MyMailer
-  def initialize(giver:, receiver:)
-    puts giver
-    puts receiver
-    @giver = giver
-    @receiver = receiver
-    puts @giver.inspect
-    puts @receiver.inspect
-  end
-
-  def parse_message
-    <<~BODY
-      Hi #{@giver[:name]}!
-
-      It's that time of year again!  You are the Secret Santa for #{@receiver[:name]}!  As the name implies, this is a secret so please do not tell your giftee.
-
-      What does this mean?  We Norling siblings and spouses are each responsible for ONE gift for ONE sibling or spouse this year.  This email is your gifting assignment.  If you fail this task, #{@receiver[:name]} literally gets nothing and will have a horrible Christmas and it'll be your fault.  No pressure.  The gift exchange will take place sometime around Christmas-ish.  Maybe a few days after?  Or a few days before?  Who knows, but it'll be great!  Please be ready with your wrapped gift valued at $75 or less.
-
-      Any further questions about this event, ask Alice.  But don't let her know if you're her Secret Santa.  Anyhow, she mastermind-ed this whole thing last year and can answer any questions again this year.
-
-      Cheers from your Happy Secret Santa Pairing Bot!
-    BODY
-  end
-
-  def send_emails
-    mail = Mail.new
-    mail.from = ENV['EMAIL_USERNAME']
-    mail.to = @giver[:email]
-    mail.subject = 'You may open this email!'
-    mail.body = parse_message
-
-    mail.delivery_method :smtp, { address: ENV['EMAIL_SMTP_ADDRESS'],
-                                  port: ENV['EMAIL_SMTP_PORT'],
-                                  domain: ENV['EMAIL_DOMAIN'],
-                                  user_name: ENV['EMAIL_USERNAME'],
-                                  password: ENV['EMAIL_PASSWORD'],
-                                  enable_ssl: ENV['EMAIL_ENABLE_SSL'] }
-
-    # puts mail.inspect
-    mail.deliver
-  end
-end
-
-gifters = [
-  { name: 'Alice', email: 'alice@example.com', exclude: %w[Bob] },
-  { name: 'Bob', email: 'bob@example.com', exclude: %w[Alice Charlie] },
-  { name: 'Charlie', email: 'charlie@example.com', exclude: %w[Diana] },
-  { name: 'Diana', email: 'diana@example.com', exclude: %w[Charlie Alice] },
-  { name: 'Eve', email: 'eve@example.com', exclude: %w[Frank Bob] },
-  { name: 'Frank', email: 'frank@example.com', exclude: %w[Eve] }
-]
-
-if ENV['DOITLIVE'] == 'true'
-  secret_santa = SecretSanta.new(gifters:)
-  secret_santa.pair_gifters.each do |giver, receiver|
-    MyMailer.new(giver:, receiver:).send_emails
+def send_emails(pairings, year, config)
+  puts "\n#{Colors::RED}#{Colors::BOLD}📧 Sending emails...#{Colors::RESET}\n\n"
+  pairings.each do |giver, receiver|
+    puts "#{Colors::GREEN}Sending to #{giver[:name]}...#{Colors::RESET}"
+    SantaMailer.new(giver:, receiver:, config:).send_email
     sleep 3
   end
+  puts "\n#{Colors::GREEN}#{Colors::BOLD}✅ All emails sent successfully!#{Colors::RESET}\n"
+
+  # Save pairings to file
+  file_path = save_pairings(pairings, year)
+  puts "#{Colors::YELLOW}💾 Pairings saved to: #{file_path}#{Colors::RESET}\n"
+end
+
+# Main execution
+config = Config.new
+gifters = config.gifters
+secret_santa = SecretSanta.new(gifters:)
+pairings = secret_santa.pair_gifters
+
+if ENV['DOITLIVE'] == 'true'
+  send_emails(pairings, config.year, config)
+else
+  display_pairings(pairings, secret_santa.attempts)
+  puts "#{Colors::YELLOW}💡 Tip: Set DOITLIVE=true to send emails#{Colors::RESET}\n"
 end

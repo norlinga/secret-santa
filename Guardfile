@@ -2,7 +2,13 @@
 
 clearing :on
 
-guard :minitest, all_after_pass: true, test_folders: ["."], test_file_patterns: "*.rb" do
-  # with Minitest::Unit
-  watch(/^app\.rb$/) { "./app.rb" }
+guard :minitest, all_after_pass: true do
+  # Watch test files
+  watch(%r{^test/(.*)_test\.rb$})
+
+  # Watch lib files and run corresponding tests
+  watch(%r{^lib/(.+)\.rb$}) { |m| "test/#{m[1]}_test.rb" }
+
+  # Watch app.rb and run all tests
+  watch('app.rb') { 'test' }
 end
