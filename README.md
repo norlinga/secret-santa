@@ -192,7 +192,14 @@ Once you're satisfied with the pairings, send emails:
 ruby app.rb
 ```
 
-This will:
+or
+
+```bash
+# allow Makefile command to set DOITLIVE and run from container
+make send
+```
+
+In both cases, this will:
 1. Generate the pairings
 2. Send personalized emails to each participant
 3. Save pairing history to `pairings/YYYY/pairings_TIMESTAMP.txt`
