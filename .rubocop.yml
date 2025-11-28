@@ -1,2 +1,13 @@
+AllCops:
+  NewCops: enable
+  SuggestExtensions: false
+  TargetRubyVersion: 3.3
+
 Metrics/MethodLength:
   Enabled: false
+
+Metrics/ClassLength:
+  Enabled: true
+  Max: 100
+  Exclude:
+    - 'test/**/*_test.rb'

@@ -10,7 +10,9 @@ A Ruby application that automatically generates Secret Santa gift pairings and s
 - ⚙️ **Configurable** - Easy YAML configuration for participants, gift amounts, and event details
 - 🎨 **Festive Output** - Beautiful, colorful terminal display for dry-run mode
 - 📝 **History Tracking** - Saves pairing history by year for future reference
-- ✅ **Well Tested** - Comprehensive test suite with automated testing via Guard
+- 🐳 **Docker Ready** - Fully containerized with simple Makefile commands
+- ✅ **Well Tested** - Comprehensive test suite with 50+ tests and automated testing via Guard
+- 🏗️ **Clean Architecture** - Well-organized codebase with separated concerns and modular design
 
 ## Quick Start
 
@@ -219,16 +221,29 @@ The template supports ERB interpolation with these variables:
 
 ### Running Tests
 
-Run all tests:
+The project includes a comprehensive test suite with 50+ tests covering all components:
+
+**Run the entire test suite:**
 ```bash
-ruby test/secret_santa_test.rb
-ruby test/santa_mailer_test.rb
+ruby test/run.rb
 ```
 
-Or use Guard for automatic testing:
+**Run individual test files:**
+```bash
+ruby test/secret_santa_test.rb      # Pairing algorithm tests (4 tests)
+ruby test/config_test.rb            # Configuration tests (12 tests)
+ruby test/santa_mailer_test.rb      # Email delivery tests (8 tests)
+ruby test/pairing_presenter_test.rb # Display tests (11 tests)
+ruby test/pairing_recorder_test.rb  # History tracking tests (9 tests)
+ruby test/email_runner_test.rb      # Orchestration tests (8 tests)
+```
+
+**Use Guard for automatic testing during development:**
 ```bash
 bundle exec guard
 ```
+
+Guard watches your files and automatically runs relevant tests when you save, providing instant feedback during development.
 
 ### Performance Testing
 
@@ -274,35 +289,79 @@ make build
 
 ```
 secret-santa/
-├── app.rb                      # Main application entry point
-├── lib/
-│   ├── config.rb              # Configuration loader
-│   ├── secret_santa.rb        # Pairing algorithm
-│   └── santa_mailer.rb        # Email sending
+├── app.rb                      # Main application entry point (19 lines)
+├── lib/                        # Application code
+│   ├── config.rb              # Configuration loader and validator
+│   ├── secret_santa.rb        # Pairing algorithm with exclusion rules
+│   ├── santa_mailer.rb        # SMTP email delivery
+│   ├── colors.rb              # ANSI terminal color constants
+│   ├── pairing_presenter.rb   # Festive console output formatting
+│   ├── pairing_recorder.rb    # Pairing history persistence
+│   └── email_runner.rb        # Email sending orchestration
 ├── config/
 │   ├── event.yml              # Your event config (gitignored)
 │   └── event.example.yml      # Example configuration
 ├── templates/
-│   └── email_body.txt.erb     # Email template
-├── test/
-│   ├── secret_santa_test.rb   # Algorithm tests
-│   ├── santa_mailer_test.rb   # Mailer tests
-│   ├── performance_test.rb    # Performance benchmarks
-│   └── test_helper.rb         # Test configuration
-└── pairings/                   # Pairing history (gitignored)
-    └── YYYY/
-        └── pairings_TIMESTAMP.txt
+│   └── email_body.txt.erb     # Email template with ERB interpolation
+├── test/                       # Comprehensive test suite (50+ tests)
+│   ├── run.rb                 # Test runner - executes entire suite
+│   ├── test_helper.rb         # Minitest configuration
+│   ├── secret_santa_test.rb   # Algorithm tests (4 tests)
+│   ├── config_test.rb         # Configuration tests (12 tests)
+│   ├── santa_mailer_test.rb   # Mailer tests (8 tests)
+│   ├── pairing_presenter_test.rb # Display tests (11 tests)
+│   ├── pairing_recorder_test.rb  # History tests (9 tests)
+│   ├── email_runner_test.rb   # Orchestration tests (8 tests)
+│   └── performance_test.rb    # Algorithm performance benchmarks
+├── pairings/                   # Pairing history (gitignored)
+│   └── YYYY/
+│       └── pairings_TIMESTAMP.txt
+├── Dockerfile                  # Docker container definition
+├── Makefile                    # Build and run commands
+├── Guardfile                   # Automated test configuration
+└── Gemfile                     # Ruby dependencies
 ```
 
 ## How It Works
 
-1. **Configuration Loading** - Reads event details and participant list from `config/event.yml`
-2. **Pairing Algorithm** - Randomly shuffles participants and validates:
-   - No one is paired with themselves
-   - Exclusion rules are respected (spouses, previous years, etc.)
-   - Repeats shuffling if validation fails
-3. **Email Delivery** - Sends personalized emails to each giver with their receiver's name
-4. **History Tracking** - Saves pairings by year for future reference
+### Application Flow
+
+1. **Configuration Loading** (`Config`) - Loads and validates `config/event.yml`
+   - Parses YAML configuration
+   - Validates required fields (year, participants, organizer)
+   - Transforms data structure for processing
+
+2. **Pairing Generation** (`SecretSanta`) - Generates valid pairings
+   - Randomly shuffles participants
+   - Validates no self-pairing
+   - Ensures exclusion rules are respected
+   - Retries shuffling if validation fails
+
+3. **Display/Delivery** (Dry-run or Live mode)
+   - **Dry-run**: `PairingPresenter` displays festive terminal output
+   - **Live mode**: `EmailRunner` orchestrates email delivery
+
+4. **Email Sending** (`SantaMailer`) - Delivers personalized emails
+   - Renders ERB email template
+   - Configures SMTP connection
+   - Sends individual emails to each giver
+   - Adds 3-second delay between sends
+
+5. **History Recording** (`PairingRecorder`) - Saves pairing history
+   - Creates year-based directory structure
+   - Generates timestamped filename
+   - Writes formatted pairings with emails
+   - Stores in `pairings/YYYY/` or `~/.secret_santa_pairings/YYYY/`
+
+### Architecture
+
+The application follows clean architecture principles:
+
+- **Presentation Layer**: `Colors`, `PairingPresenter` - Terminal output
+- **Business Logic**: `SecretSanta`, `Config` - Core pairing algorithm
+- **Infrastructure**: `SantaMailer`, `PairingRecorder` - External services
+- **Orchestration**: `EmailRunner` - Coordinates workflow
+- **Entry Point**: `app.rb` - Minimal (19 lines) main script
 
 ## Tips
 

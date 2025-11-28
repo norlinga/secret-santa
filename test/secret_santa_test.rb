@@ -21,14 +21,14 @@ class SecretSantaTest < Minitest::Test
        { name: 'Diana', email: '', exclude: ['Charlie'] }]
     ]
 
-    @invalid_pairing_1 = [
+    @invalid_pairing_one = [
       [{ name: 'Alice', email: '', exclude: ['Bob'] },
        { name: 'Alice', email: '', exclude: ['Bob'] }],
       [{ name: 'Bob', email: '', exclude: ['Alice'] },
        { name: 'Charlie', email: '', exclude: ['Diana'] }]
     ]
 
-    @invalid_pairing_2 = [
+    @invalid_pairing_two = [
       [{ name: 'Alice', email: '', exclude: ['Bob'] },
        { name: 'Bob', email: '', exclude: ['Alice'] }],
       [{ name: 'Bob', email: '', exclude: ['Alice'] },
@@ -56,9 +56,9 @@ class SecretSantaTest < Minitest::Test
 
   def test_pairings_valid_returns_false_for_invalid_pairings
     secret_santa = SecretSanta.new(gifters: @gifters)
-    secret_santa.instance_variable_set(:@pairings, @invalid_pairing_1)
+    secret_santa.instance_variable_set(:@pairings, @invalid_pairing_one)
     assert !secret_santa.send(:pairings_valid?)
-    secret_santa.instance_variable_set(:@pairings, @invalid_pairing_2)
+    secret_santa.instance_variable_set(:@pairings, @invalid_pairing_two)
     assert !secret_santa.send(:pairings_valid?)
   end
 end

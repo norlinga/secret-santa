@@ -11,6 +11,10 @@ class Config
     load_config
   end
 
+  def self.live_mode?
+    ENV['DOITLIVE'] == 'true'
+  end
+
   def gifters
     @participants.map do |participant|
       {

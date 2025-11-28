@@ -3,6 +3,7 @@
 require 'mail'
 require 'erb'
 
+# Does the mailing of assignment emails
 class SantaMailer
   TEMPLATE_PATH = File.expand_path('../templates/email_body.txt.erb', __dir__)
 
@@ -21,17 +22,17 @@ class SantaMailer
 
   def send_email
     mail = Mail.new
-    mail.from = ENV['EMAIL_USERNAME']
+    mail.from = ENV.fetch('EMAIL_USERNAME', nil)
     mail.to = @giver[:email]
     mail.subject = 'You may open this email!'
     mail.body = message_body
 
-    mail.delivery_method :smtp, { address: ENV['EMAIL_SMTP_ADDRESS'],
-                                  port: ENV['EMAIL_SMTP_PORT'],
-                                  domain: ENV['EMAIL_DOMAIN'],
-                                  user_name: ENV['EMAIL_USERNAME'],
-                                  password: ENV['EMAIL_PASSWORD'],
-                                  enable_ssl: ENV['EMAIL_ENABLE_SSL'] }
+    mail.delivery_method :smtp, { address: ENV.fetch('EMAIL_SMTP_ADDRESS', nil),
+                                  port: ENV.fetch('EMAIL_SMTP_PORT', nil),
+                                  domain: ENV.fetch('EMAIL_DOMAIN', nil),
+                                  user_name: ENV.fetch('EMAIL_USERNAME', nil),
+                                  password: ENV.fetch('EMAIL_PASSWORD', nil),
+                                  enable_ssl: ENV.fetch('EMAIL_ENABLE_SSL', nil) }
 
     mail.deliver
   end
